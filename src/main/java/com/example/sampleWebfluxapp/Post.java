@@ -7,6 +7,8 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import jakarta.persistence.Version;
+
 @Entity
 @Table(name = "post")
 public class Post {
@@ -24,6 +26,9 @@ public class Post {
 
   @Column(nullable = false)
   public String body;
+
+  @Version
+  private Long version;
 
   public Post() {
     super();
