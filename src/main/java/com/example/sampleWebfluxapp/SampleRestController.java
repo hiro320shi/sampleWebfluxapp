@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PathVariable;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.persistence.criteria.CriteriaBuilder.In;
 import reactor.core.publisher.Mono;
 
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -12,8 +13,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
+import java.util.Optional;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.sampleWebfluxapp.SampleWebFluxAppApplication;
 
@@ -40,14 +49,31 @@ public class SampleRestController {
   }
 
   @PostConstruct
+  @Transactional
   public void init() {
-    // Initialize the repository with some data if needed
-    Post p1 = new Post(1, 1, "Hello", "Hello Flux!");
-    Post p2 = new Post(2, 2, "Sample", "This is a sample post.");
-    Post p3 = new Post(3, 3, "ハロー", "これはサンプルです。");
-    repository.saveAndFlush(p1);
-    repository.saveAndFlush(p2);
-    repository.saveAndFlush(p3);
+    saveOrUpdate(1, 1, "Hello", "Hello Flux!");
+    saveOrUpdate(2, 2, "Sample", "This is a sample post.");
+    saveOrUpdate(3, 3, "ハロー", "これはサンプルです。");
+  }
+
+  private void saveOrUpdate(int id, int userId, String title, String body) {
+    Post existing = repository.findById(id);
+    Post post;
+
+    if (existing == null) {
+      // 新規作成: IDはセットせず、DBに任せる
+      post = new Post();
+      post.userId = userId;
+      post.title = title;
+      post.body = body;
+    } else {
+      // 既存データの更新
+      post = existing;
+      post.title = title;
+      post.body = body;
+    }
+
+    repository.save(post);
   }
 
   @RequestMapping(value = "/post{id}")
@@ -60,5 +86,23 @@ public class SampleRestController {
   public Flux<Object> posts() {
     List<Post> posts = repository.findAll();
     return Flux.fromArray(posts.toArray());
+  }
+
+  @RequestMapping("/file")
+  public Mono<String> file() {
+    String result = "";
+    try {
+      ClassPathResource cr = new ClassPathResource("sample.txt");
+      InputStream is = cr.getInputStream();
+      InputStreamReader isr = new InputStreamReader(is, "utf-8");
+      BufferedReader br = new BufferedReader(isr);
+      String line;
+      while ((line = br.readLine()) != null) {
+        result += line;
+      }
+    } catch (IOException e) {
+      result = e.getMessage();
+    }
+    return Mono.just(result);
   }
 }
