@@ -1,8 +1,12 @@
 package com.example.sampleWebfluxapp;
 
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.CrossOrigin;
+
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.http.MediaType;
 
 import jakarta.annotation.PostConstruct;
 import jakarta.persistence.criteria.CriteriaBuilder.In;
@@ -32,6 +36,13 @@ public class SampleRestController {
   @Autowired
   PostRepository repository;
 
+  private final WebClient webClient;
+
+  public SampleRestController(WebClient.Builder builder) {
+    super();
+    webClient = builder.baseUrl("jsonplaceholder.typicode.com").build();
+  }
+
   @RequestMapping("/")
   public String hello() {
     return "Hello Flux!";
@@ -42,6 +53,7 @@ public class SampleRestController {
     return Mono.just("Hello Flux(Mono).");
   }
 
+  @CrossOrigin(value = { "http://localhost:3000/", "http://example.com" })
   @RequestMapping("/post")
   public Mono<Post> post() {
     Post psot = new Post(0, 0, "dummy", "dummy message...");
@@ -76,8 +88,9 @@ public class SampleRestController {
     repository.save(post);
   }
 
-  @RequestMapping(value = "/post{id}")
-  public Mono<Post> getPost(@RequestParam int id) {
+  @CrossOrigin(value = { "http://localhost:3000/", "http://example.com" })
+  @RequestMapping(value = "/post/{id}")
+  public Mono<Post> getPost(@PathVariable int id) {
     Post post = repository.findById(id);
     return Mono.just(post);
   }
@@ -104,5 +117,34 @@ public class SampleRestController {
       result = e.getMessage();
     }
     return Mono.just(result);
+  }
+
+  @RequestMapping("/web/{id}")
+  public Mono<Post> web(@PathVariable int id) {
+    return this.webClient.get()
+        .uri("/posts/" + id)
+        .accept(MediaType.APPLICATION_JSON)
+        .retrieve()
+        .bodyToMono(Post.class);
+  }
+
+  @RequestMapping("/web")
+  public Flux<Post> web2() {
+    return this.webClient.get()
+        .uri("/posts")
+        .accept(MediaType.APPLICATION_JSON)
+        .retrieve()
+        .bodyToFlux(Post.class);
+  }
+
+  @RequestMapping("/webpost/{id}")
+  public Mono<Post> web3(@PathVariable int id) {
+    Post post = repository.findById(id);
+    return this.webClient.post()
+        .uri("/posts")
+        .accept(MediaType.APPLICATION_JSON)
+        .bodyValue(post)
+        .retrieve()
+        .bodyToMono(Post.class);
   }
 }
