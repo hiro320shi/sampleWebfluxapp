@@ -3,6 +3,8 @@ package com.example.sampleWebfluxapp;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.http.MediaType;
 
@@ -51,6 +53,7 @@ public class SampleRestController {
     return Mono.just("Hello Flux(Mono).");
   }
 
+  @CrossOrigin(value = { "http://localhost:3000/", "http://example.com" })
   @RequestMapping("/post")
   public Mono<Post> post() {
     Post psot = new Post(0, 0, "dummy", "dummy message...");
@@ -85,8 +88,9 @@ public class SampleRestController {
     repository.save(post);
   }
 
-  @RequestMapping(value = "/post{id}")
-  public Mono<Post> getPost(@RequestParam int id) {
+  @CrossOrigin(value = { "http://localhost:3000/", "http://example.com" })
+  @RequestMapping(value = "/post/{id}")
+  public Mono<Post> getPost(@PathVariable int id) {
     Post post = repository.findById(id);
     return Mono.just(post);
   }
